@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>E-Commerce Portal</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <link rel="stylesheet" href="/portal/style.css"/>
+		<script src="https://js.braintreegateway.com/js/braintree-2.21.0.min.js"></script>
+		<script src="https://assets.braintreegateway.com/v1/braintree-oauth-connect.js"></script>
+    </head>
+    <body>
+        <div class="header">
+            <h1>E-Commerce Portal</h1>
+        </div>
+        <div class="card">
+            <h2>Connect</h2>
+            <p>You don't seem to be connected to Braintree. Click the button
+                below to connect your account to Braintree.</p>
+			<div id="bt-oauth-connect-container"></div>
+        </div>
+		<script>
+new BraintreeOAuthConnect({
+    connectUrl: "<%= connectUrl %>",
+	container: 'bt-oauth-connect-container',
+	environment: 'sandbox',
+	onError: function (errorObject) {
+		console.warn(errorObject.message);
+	}
+});
+		</script>
+    </body>
+</html>
+

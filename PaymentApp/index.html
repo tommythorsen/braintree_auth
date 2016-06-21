@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Braintree Payment App</title>
+        <script src="https://js.braintreegateway.com/js/braintree-2.25.0.min.js"></script>
+    </head>
+    <body>
+        <h2>Braintree Payment App</h2>
+
+        <form style="display:none" id="payment-form">
+            <div id="dropin-container"></div>
+            <button onclick="cancel()">Cancel</button>
+            <input id='submit' type='submit' value='Submit'/>
+        </form>
+
+        <button style="display:none" id="install" onclick="install()">Install Payment App</button>
+
+        <script>
+            var paymentForm = document.getElementById("payment-form");
+            var installButton = document.getElementById("install");
+            var paymentRequest;
+            var clientToken;
+            var paymentMethodNonce;
+
+            var interval = setInterval(function() {
+                if (navigator.payments) {
+                    clearInterval(interval);
+                    onLoaded();
+                }
+            }, 100);
+
+            function onLoaded() {
+                console.log("loaded!!");
+                navigator.payments.getRequest()
+                .then(function(p) {
+                    paymentRequest = p;
+
+                    if (paymentRequest) {
+                        paymentForm.style.display = "block";
+                    } else {
+                        installButton.style.display = "inline";
+                        return;
+                    }
+
+                    var xhttp = new XMLHttpRequest();
+                    xhttp.onreadystatechange = function() {
+                        if (xhttp.readyState == 4 && xhttp.status == 200) {
+                            clientToken = xhttp.responseText;
+                            console.log("client token: " + clientToken);
+                            braintree.setup(clientToken, 'dropin', {
+                                container: 'dropin-container',
+                                onPaymentMethodReceived: function(paymentMethod) {
+                                    button = document.getElementById('submit');
+                                    if (button.value == "Pay") {
+                                        pay();
+                                    } else {
+                                        console.log("onPaymentMethodReceived()");
+                                        console.log(JSON.stringify(paymentMethod));
+                                        button.value = "Pay";
+                                        paymentMethodNonce = paymentMethod.nonce;
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    var merchantName = paymentRequest.methodData[0].data.merchantName;
+                    xhttp.open("GET", "/payment-app/client_token?merchantName=" + merchantName, true);
+                    xhttp.send();
+
+                })
+                .catch(function(error) {
+                    console.log("ERROR: " + error);
+                    installButton.style.display = "inline";
+                });
+            }
+
+            function pay() {
+                console.log("pay!!");
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    console.log("xhttp.onreadystatechange, state=" + xhttp.readyState);
+                    if (xhttp.readyState == 4) {
+                        console.log("status=" + xhttp.status);
+                        if (xhttp.status == 200) {
+                            console.log("payment success!!");
+                            navigator.payments.submitPaymentResponse({
+                                methodName: "braintree-auth",
+                                details: {}
+                            });
+                        } else {
+                            console.log("error!!");
+                            navigator.payments.submitPaymentResponse(null);
+                        }
+                    }
+                }
+                xhttp.open("post", "/payment-app/pay?merchantName=" +
+                        paymentRequest.methodData[0].data.merchantName +
+                        "&paymentMethodNonce=" + paymentMethodNonce +
+                        "&currency=" + paymentRequest.details.total.amount.currency +
+                        "&amount=" + paymentRequest.details.total.amount.value);
+                xhttp.send();
+            }
+
+            function cancel() {
+                console.log("cancel!!");
+                navigator.payments.submitPaymentResponse(null);
+            }
+
+            function install() {
+                console.log("install!!");
+                // A hacky way of getting an absolute url
+                var a = document.createElement("a");
+                a.href = "index.html";
+                navigator.payments.registerPaymentApp({
+                    name: "Braintree Payment App",
+                    start_url: a.href,
+                    enabled_methods: ["braintree-auth"]
+                });
+            }
+        </script>
+    </body>
+</html>
+
