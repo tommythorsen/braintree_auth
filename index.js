@@ -17,7 +17,7 @@ var gateway = braintree.connect({
 });
 
 var connectUrl = gateway.oauth.connectUrl({
-  redirectUri: "https://10.20.74.215:9002/portal/connect.html",
+  redirectUri: "https://localhost:9002/portal/connect.html",
   scope: "read_write,shared_vault_transactions",
   state: "foo_state",
   landingPage: "signup",
